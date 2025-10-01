@@ -16,16 +16,26 @@ When you click the **Render** button a document will be generated that includes 
 #loadingpackages
 
 ```{r}
-1 + 1
 #|label: loading packages
-library(tidyyverse)
+library(tidyverse)
+library(readxl)
+library(dplyr)
+library(janitor)
 ```
 
 You can add options to executable code like this
 
 ```{r}
-#| echo: false
-2 * 2
+#|label: loading excel file
+#loadinginexcelsfileL0fromdropbox
+df.dungdecay<- "https://www.dropbox.com/scl/fi/eb7lz3jzgjvwgouczmkiy/dung-data.xlsx?rlkey=3h56mcpgg8xq0ofj33h6xmj10&st=mac9irs7&dl=1"
+download.file(df.dungdecay, destfile="dung-data.xlsx", mode="wb")
+df.dungdecay<- read_excel("dung-data.xlsx", sheet="whole_mass_data_calculations")
 ```
 
-The `echo: false` option disables the printing of code (only output is displayed).
+```{r}
+#|label: calculating percentage of mass loss
+#calculatingpercentageofmassloss
+
+
+```
