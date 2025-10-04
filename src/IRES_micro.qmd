@@ -1,5 +1,5 @@
 ---
-title: "IRES_decomp_dung"
+title: "IRES_micro"
 author: "Ella Schulte"
 format: html
 editor: visual
@@ -13,8 +13,6 @@ Quarto enables you to weave together content and executable code into a finished
 
 When you click the **Render** button a document will be generated that includes both content and the output of embedded code. You can embed code like this:
 
-#loadingpackages
-
 ```{r}
 #|label: loading packages
 library(tidyverse)
@@ -27,14 +25,13 @@ library(janitor)
 ```{r}
 #|label: loading excel file
 #loadinginexcelsfileL0fromdropbox
-df.dungdecay<- "https://www.dropbox.com/scl/fi/eb7lz3jzgjvwgouczmkiy/dung-data.xlsx?rlkey=3h56mcpgg8xq0ofj33h6xmj10&st=mac9irs7&dl=1"
-download.file(df.dungdecay, destfile="dung-data.xlsx", mode="wb")
-df.dungdecay<- read_excel("dung-data.xlsx", sheet="whole_mass_data_calculations")
+df.micro<- "https://www.dropbox.com/scl/fi/ww55i2k34sy5ngukrjgrz/micro_abundance.xlsx?rlkey=a9ow55e3y0kbuvmzfv8em7m9z&st=y06iobpq&dl=1"
+download.file(df.micro, destfile="micro_abundance.xlsx", mode="wb")
+df.micro<- read_excel("micro_abundance.xlsx", sheet="micro_fauna_data_cleaned")
 ```
-
 ```{r}
-#|label: calculating percentage of mass loss
-#calculatingpercentageofmassloss
-
-
+#|label: calcu
+#loadinginexcelsfileL0fromdropbox
 ```
+
+
