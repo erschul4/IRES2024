@@ -19,19 +19,185 @@ library(tidyverse)
 library(readxl)
 library(dplyr)
 library(janitor)
+library(ggplot2)
+library(tidyr)
 ```
 
-
 ```{r}
-#|label: loading excel file
-#loadinginexcelsfileL0fromdropbox
-df.micro<- "https://www.dropbox.com/scl/fi/ww55i2k34sy5ngukrjgrz/micro_abundance.xlsx?rlkey=a9ow55e3y0kbuvmzfv8em7m9z&st=y06iobpq&dl=1"
+#|label: loading excel files
+
+#loading in micro abundance file from dropbox
+df.micro<- "https://www.dropbox.com/scl/fi/l2jz96yze5u8h50lf8rbj/micro_abundance.xlsx?rlkey=etddasllmna1nim9hu64wwbo3&st=xl6y9bhi&dl=1"
 download.file(df.micro, destfile="micro_abundance.xlsx", mode="wb")
 df.micro<- read_excel("micro_abundance.xlsx", sheet="micro_fauna_data_cleaned")
-```
-```{r}
-#|label: calcu
-#loadinginexcelsfileL0fromdropbox
+
+#loading in calculated dung decomp file from dropbox
+df.baerdecay<- "https://www.dropbox.com/scl/fi/ntldh90n0228d6rujlzrd/baer_decay_calculated.xlsx?rlkey=9bszkjtgtclji8ixgok6fn5pi&st=rion6wb4&dl=1"
+download.file(df.baerdecay, destfile="baer_decay_calculated.xlsx", mode="wb")
+df.baerdecay<- read_excel("baer_decay_calculated.xlsx", sheet="baer_mass_data_calculations")
+
 ```
 
+```{r}
+#|label: calculating percentages
+
+# calculating percentages of nematode abundance
+# make sure SampleID exists in both frames
+# creates nematodepercentage as (NematodeTotalAbundance / CalcFinalDryMass) * 100
+
+df.micro <- df.micro |> dplyr::mutate(.mass = df.baerdecay$`CalcFinalDryMass(g)(calc)`[match(SampleID, df.baerdecay$SampleID)],
+    nematodepercentage = dplyr::if_else(.mass > 0, (NematodeTotalAbundance / .mass) * 100, NA_real_)) |> dplyr::select(-.mass)
+
+# make sure SampleID exists in both frames
+# creates BFpercentage as (BF / CalcFinalDryMass) * 100
+
+df.micro <- df.micro %>% mutate(.mass = df.baerdecay$`CalcFinalDryMass(g)(calc)`[match(SampleID, df.baerdecay$SampleID)],BFpercentage = if_else(!is.na(.mass) & .mass > 0, (BF / .mass) * 100, NA_real_)) %>% select(-.mass)
+
+# make sure SampleID exists in both frames
+# creates FFpercentage as (BF / CalcFinalDryMass) * 100
+
+df.micro <- df.micro %>% mutate(.mass = df.baerdecay$`CalcFinalDryMass(g)(calc)`[match(SampleID, df.baerdecay$SampleID)],FFpercentage = if_else(!is.na(.mass) & .mass > 0, (FF / .mass) * 100, NA_real_)) %>% select(-.mass)
+
+# make sure SampleID exists in both frames
+# creates omnipercentage as (omni / CalcFinalDryMass) * 100
+
+df.micro <- df.micro %>% mutate(.mass = df.baerdecay$`CalcFinalDryMass(g)(calc)`[match(SampleID, df.baerdecay$SampleID)],omnipercentage = if_else(!is.na(.mass) & .mass > 0, (omni / .mass) * 100, NA_real_)) %>% select(-.mass)
+
+# make sure SampleID exists in both frames
+# creates UKpercentage as (Unknown / CalcFinalDryMass) * 100
+
+df.micro <- df.micro %>% mutate(.mass = df.baerdecay$`CalcFinalDryMass(g)(calc)`[match(SampleID, df.baerdecay$SampleID)],UKpercentage = if_else(!is.na(.mass) & .mass > 0, (Unknown / .mass) * 100, NA_real_)) %>% select(-.mass)
+```
+
+```{r}
+#|label: creating general visuals
+
+# ordering factors
+df.micro <- df.micro %>% mutate(CollectionTime = factor(CollectionTime, levels = c(1, 2, 4), ordered = TRUE), Microsite= factor(Microsite, levels = c("sun","tree")),DungType=factor(DungType,levels=c("cow", "oryx")), WaterTrt = factor(WaterTrt,levels = c(0, 3, 6, 9)))
+
+# long format
+long_pct <- df.micro %>% pivot_longer(c(nematodepercentage, BFpercentage, FFpercentage, omnipercentage, UKpercentage),names_to = "metric", values_to = "percent")
+
+#composition percentage graph
+comp <- long_pct %>%
+  group_by(Microsite, DungType, WaterTrt, CollectionTime, metric) %>%
+  summarize(mean = mean(percent, na.rm = TRUE), .groups = "drop")
+
+ggplot(comp, aes(CollectionTime, mean, fill = metric)) +
+  geom_col(position = "fill") +
+  facet_grid(Microsite + DungType ~ WaterTrt) +
+  scale_y_continuous(labels = scales::percent) +
+  labs(x = "Collection time", y = "Composition (100%)", fill = "Metric") +
+  theme_minimal()
+
+#mean percentage graph
+ggplot(comp, aes(CollectionTime, WaterTrt, fill = mean)) +
+  geom_tile() +
+  facet_grid(metric ~ Microsite + DungType) +
+  labs(x = "Collection time", y = "WaterTrt", fill = "Mean %") +
+  theme_minimal()
+
+```
+
+```{r}
+#|label: creating visuals for nematode total abundance percentage
+
+# ordering factors
+df.micro <- df.micro %>%
+  mutate(
+    CollectionTime = factor(CollectionTime, levels = c(1, 2, 4), ordered = TRUE),
+    WaterTrt       = factor(WaterTrt, levels = c(0, 3, 6, 9), ordered = TRUE),
+    Microsite      = factor(Microsite, levels = c("sun", "tree")),
+    DungType       = factor(DungType,  levels = c("cow", "oryx")), nematodepercentage = suppressWarnings(as.numeric(nematodepercentage)))
+
+#box/violin plot comparing nematode total abundance percentage to microsite, dungtype and watertrt
+ggplot(df.micro, aes(Microsite, nematodepercentage, fill = Microsite)) +
+  geom_boxplot(outlier.shape = NA) +
+  geom_jitter(width = 0.12, alpha = 0.35, size = 1) +
+  facet_grid(DungType ~ WaterTrt) +
+  labs(x = "Microsite", y = "Nematode %") +
+  coord_cartesian(ylim = c(0, 275)) +
+  theme_minimal() +
+  guides(fill = "none")
+
+# box plot/violin of nematode total abundance percentage and microsite
+ggplot(df.micro, aes(x = Microsite, y = nematodepercentage, fill = Microsite)) +
+  geom_violin(trim = FALSE, alpha = 0.25) +
+  geom_boxplot(width = 0.18, outlier.shape = NA) +
+  geom_jitter(width = 0.12, alpha = 0.25, size = 1) +
+  labs(x = "Microsite", y = "Nematode %", title = "Nematode total abundance percentage by microsite") +
+  coord_cartesian(ylim = c(0, 275)) +
+  theme_minimal() +
+  guides(fill = "none")
+
+#box plot/violin of nematode total abundance percentage and collectiontime
+ggplot(df.micro, aes(x = CollectionTime, y = nematodepercentage, fill = CollectionTime)) +
+  geom_violin(trim = FALSE, alpha = 0.25) +
+  geom_boxplot(width = 0.18, outlier.shape = NA) +
+  geom_jitter(width = 0.12, alpha = 0.25, size = 1) +
+  labs(x = "Collection time", y = "Nematode %", title = "Nematode total abundance % by collection time") +
+  coord_cartesian(ylim = c(0, 275)) +
+  theme_minimal() +
+  guides(fill = "none")
+
+# box plot/violin of nematode total abundance percentage and dungtype
+ggplot(df.micro, aes(x = DungType, y = nematodepercentage, fill = DungType)) +
+  geom_violin(trim = FALSE, alpha = 0.25) +
+  geom_boxplot(width = 0.18, outlier.shape = NA) +
+  geom_jitter(width = 0.12, alpha = 0.25, size = 1) +
+  labs(x = "Dung type", y = "Nematode %", title = "Nematode total abundance % by dung type") +
+  coord_cartesian(ylim = c(0, 275)) +
+  theme_minimal() +
+  guides(fill = "none")
+
+# box plot/violin of nematode total abundance percentage and water trt
+ggplot(df.micro, aes(x = WaterTrt, y = nematodepercentage, fill = WaterTrt)) +
+  geom_violin(trim = FALSE, alpha = 0.25) +
+  geom_boxplot(width = 0.18, outlier.shape = NA) +
+  geom_jitter(width = 0.12, alpha = 0.25, size = 1) +
+  labs(x = "Water treatment", y = "Nematode %", title = "Nematode total abundance % by water treatment") +
+  coord_cartesian(ylim = c(0, 275)) +
+  theme_minimal() +
+  guides(fill = "none")
+
+#box/violin comparing nematode total abundance percenatges with collectiontime and water trt
+ggplot(df.micro, aes(CollectionTime, nematodepercentage, fill = WaterTrt)) +
+  geom_boxplot(position = position_dodge(width = 0.8), outlier.shape = NA, width = 0.6) +
+  geom_jitter(position = position_jitterdodge(dodge.width = 0.8, jitter.width = 0.12),
+              alpha = 0.35, size = 1) +
+  labs(x = "Collection time", y = "Nematode %", fill = "WaterTrt",
+       title = "Distribution by time and water treatment") +
+  coord_cartesian(ylim = c(0, 275)) +
+  theme_minimal()
+
+
+#box/violin comparing nematode total abundance percenatges with collectiontime and microsite
+ggplot(df.micro, aes(CollectionTime, nematodepercentage, fill = Microsite)) +
+  geom_boxplot(position = position_dodge(width = 0.8), outlier.shape = NA, width = 0.6) +
+  geom_jitter(position = position_jitterdodge(dodge.width = 0.8, jitter.width = 0.12),
+              alpha = 0.35, size = 1) +
+  labs(x = "Collection time", y = "Nematode %", fill = "Microsite",
+       title = "Distribution by time, dodged by microsite") +
+  coord_cartesian(ylim = c(0, 275)) +
+  theme_minimal()
+
+
+#box/violin comparing nematode total abundance percenatges with collectiontime and microsite
+ggplot(df.micro, aes(CollectionTime, nematodepercentage, fill = DungType)) +
+  geom_boxplot(position = position_dodge(width = 0.8), outlier.shape = NA, width = 0.6) +
+  geom_jitter(position = position_jitterdodge(dodge.width = 0.8, jitter.width = 0.12),
+              alpha = 0.35, size = 1) +
+  labs(x = "Collection time", y = "Nematode %", fill = "Dung type",
+       title = "Distribution by time, dodged by dung type") +
+  coord_cartesian(ylim = c(0, 275)) +
+  theme_minimal()
+
+
+```
+
+```{r}
+#|label: creating visuals for bacterial feeder percentage
+
+
+```
 
