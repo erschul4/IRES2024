@@ -21,11 +21,18 @@ library(dplyr)
 library(janitor)
 ```
 
-You can add options to executable code like this
-
 ```{r}
-#| echo: false
-2 * 2
+#|label: loading excel file
+
+#loadinginexcelsfileLofromdropbox
+df.macro<- "https://www.dropbox.com/scl/fi/77m21ax9p7xmt569he61u/macro_abundance.xlsx?rlkey=mh58u00n28j669occgq98uoan&st=bbom4k5k&dl=1"
+download.file(df.macro, destfile="macro_abundance.xlsx", mode="wb")
+df.macro<- read_excel("macro_abundance.xlsx", sheet="macro_fauna_data_cleaned")
 ```
 
-The `echo: false` option disables the printing of code (only output is displayed).
+```{r}
+#|label: calculating percentages
+#calculatingpercentagesof
+
+```
+
