@@ -28,12 +28,12 @@ library(tidyr)
 #|label: loading excel files
 
 #loading in micro abundance file from dropbox
-df.micro<- "https://www.dropbox.com/scl/fi/l2jz96yze5u8h50lf8rbj/micro_abundance.xlsx?rlkey=etddasllmna1nim9hu64wwbo3&st=xl6y9bhi&dl=1"
+df.micro<- "https://www.dropbox.com/scl/fi/by91liv1k8k8ozdhbidf1/micro_abundance-1.xlsx?rlkey=kwk3di319aw8rzhchpbfg9kg5&st=8drk2xs4&dl=1"
 download.file(df.micro, destfile="micro_abundance.xlsx", mode="wb")
 df.micro<- read_excel("micro_abundance.xlsx", sheet="micro_fauna_data_cleaned")
 
 #loading in calculated dung decomp file from dropbox
-df.baerdecay<- "https://www.dropbox.com/scl/fi/ntldh90n0228d6rujlzrd/baer_decay_calculated.xlsx?rlkey=9bszkjtgtclji8ixgok6fn5pi&st=rion6wb4&dl=1"
+df.baerdecay<- "https://www.dropbox.com/scl/fi/m84p2hcurd8ccwv7hedve/baer_decay_calculated.xlsx?rlkey=1c2qfijkb5ng0mhngz2589ffe&st=m5chihu7&dl=1"
 download.file(df.baerdecay, destfile="baer_decay_calculated.xlsx", mode="wb")
 df.baerdecay<- read_excel("baer_decay_calculated.xlsx", sheet="baer_mass_data_calculations")
 
@@ -109,7 +109,8 @@ df.micro <- df.micro %>%
     CollectionTime = factor(CollectionTime, levels = c(1, 2, 4), ordered = TRUE),
     WaterTrt       = factor(WaterTrt, levels = c(0, 3, 6, 9), ordered = TRUE),
     Microsite      = factor(Microsite, levels = c("sun", "tree")),
-    DungType       = factor(DungType,  levels = c("cow", "oryx")), nematodepercentage = suppressWarnings(as.numeric(nematodepercentage)))
+    DungType       = factor(DungType,  levels = c("cow", "oryx")),  
+    Glycol         = factor(Glycol, levels = c("Y", "N")),nematodepercentage = suppressWarnings(as.numeric(nematodepercentage)))
 
 #box/violin plot comparing nematode total abundance percentage to microsite, dungtype and watertrt
 ggplot(df.micro, aes(Microsite, nematodepercentage, fill = Microsite)) +
@@ -160,6 +161,13 @@ ggplot(df.micro, aes(x = WaterTrt, y = nematodepercentage, fill = WaterTrt)) +
   coord_cartesian(ylim = c(0, 275)) +
   theme_minimal() +
   guides(fill = "none")
+
+#box plot/violin of nematode total abundance percentage and glycol
+ggplot(df.micro, aes(x = Glycol, y = nematodepercentage, fill = Glycol)) +
+  geom_violin(trim = FALSE, alpha = 0.25) +
+  geom_boxplot(width = 0.18, outlier.shape = NA) +
+  geom_jitter(width = 0.12, alpha = 0.25, size = 1) +
+  labs(x = "Glycol Presence", y = "Nematode %", title = "Nematode total abundance % by glycol presence") +coord_cartesian(ylim = c(0, 275)) + theme_minimal() + guides(fill = "none")
 
 #box/violin comparing nematode total abundance percenatges with collectiontime and water trt
 ggplot(df.micro, aes(CollectionTime, nematodepercentage, fill = WaterTrt)) +
